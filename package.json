@@ -1,0 +1,86 @@
+{
+  "name": "360news",
+  "productName": "360News",
+  "version": "1.0.0",
+  "description": "360News - RSS 资讯聚合推送工具。基于 RSStT (Rongronggg9/RSS-to-Telegram-Bot) 深度修改，支持 Playwright 爬虫抓取动态页面。",
+  "license": "AGPL-3.0-or-later",
+  "author": "Ethan.Y <smthdagg@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smthdagg/360News"
+  },
+  "homepage": "https://github.com/smthdagg/360News",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "dist": "electron-builder --arm64",
+    "dist:all": "electron-builder --arm64 --x64"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.zcode.rsstt",
+    "productName": "360News",
+    "directories": {
+      "output": "dist"
+    },
+	    "files": [
+	      "main.js",
+	      "preload.js",
+	      "renderer/**/*",
+	      "assets/**/*"
+	    ],
+	    "extraResources": [
+	      {
+	        "from": "../RSStT",
+	        "to": "RSStT",
+	        "filter": [
+	          "**/*",
+	          "!.venv/**/*",
+	          "!.git/**/*",
+	          "!**/__pycache__/**/*",
+	          "!*.pyc",
+	          "!*.pyo"
+	        ]
+	      }
+	    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "title": "360News",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+out/
+*.dmg
+*.zip
+*.blockmap
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env & secrets
+.env
+config/.env
+config/db.sqlite3
+config/*.json
+!config/xbridge_config.json
+
+# Session & cookies
+config/x_session.json
+**/cookies.json
+**/cookies*.json
