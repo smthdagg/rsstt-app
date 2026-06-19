@@ -22,26 +22,39 @@
 
 ## 📦 安装
 
-### 下载预编译版本
+### macOS
 
 从 [Releases](https://github.com/smthdagg/360News/releases) 下载最新 `360News-*-arm64.dmg`，打开并拖入 Applications 文件夹。
 
-### 从源码构建
+### Windows
+
+> **当前版本主要为 macOS 构建，Windows 支持正在进行中。**
+
+源码构建（Windows 需要 Node.js 和 Python 3.11+）：
 
 ```bash
 # 克隆仓库
 git clone https://github.com/smthdagg/360News.git
 cd 360News
 
-# 安装依赖
+# 安装前端依赖
 npm install
+
+# 设置 Python 虚拟环境
+python -m venv .venv
+.venv\Scripts\activate     # Windows
+pip install -r ../RSStT/requirements.txt
+pip install playwright
+playwright install chromium
 
 # 开发模式运行
 npm run dev
 
-# 构建 DMG
-npm run dist
+# 构建 Windows 安装包
+npm run dist:win
 ```
+
+> 注意：Windows 下需要自行配置 Telegram 连接（代理或 MTProto 混淆）。
 
 ## 🚀 快速开始
 
