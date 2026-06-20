@@ -42,3 +42,4 @@ config/*.json
 config/x_session.json
 **/cookies.json
 **/cookies*.json
+360News/
