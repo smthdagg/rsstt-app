@@ -52,4 +52,9 @@ contextBridge.exposeInMainWorld('botAPI', {
   // X/Twitter 桥接配置
   bridgeReadConfig: () => ipcRenderer.invoke('bridge:readConfig'),
   bridgeSaveConfig: (cfg) => ipcRenderer.invoke('bridge:saveConfig', cfg),
+
+  // X/Twitter Cookie 管理
+  bridgeSessionStatus: () => ipcRenderer.invoke('bridge:sessionStatus'),
+  bridgeImportCookies: (jsonStr) => ipcRenderer.invoke('bridge:importCookies', jsonStr),
+  bridgeRestart: () => ipcRenderer.invoke('bridge:restart'),
 });

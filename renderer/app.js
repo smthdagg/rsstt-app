@@ -29,6 +29,12 @@ const els = {
   bridgeInterval: $('bridgeInterval'),
   bridgeIntervalDisplay: $('bridgeIntervalDisplay'),
   btnSaveBridgeConfig: $('btnSaveBridgeConfig'),
+  // Cookie 管理
+  cookieStatus: $('cookieStatus'),
+  cookieInput: $('cookieInput'),
+  btnImportCookies: $('btnImportCookies'),
+  btnRestartBridge: $('btnRestartBridge'),
+  btnRefreshCookieStatus: $('btnRefreshCookieStatus'),
 };
 
 const STATE_LABEL = {
@@ -75,6 +81,8 @@ function openConfig() {
     els.bridgeInterval.value = val;
     els.bridgeIntervalDisplay.textContent = val;
   });
+  // 加载 Cookie 状态
+  loadCookieStatus();
   // 加载用户列表
   loadUsers();
 }
@@ -312,6 +320,70 @@ els.btnSaveBridgeConfig.addEventListener('click', async () => {
   flash(els.btnSaveBridgeConfig, res.ok ? '已保存 ✓' : '保存失败 ✗', !res.ok);
   if (res.ok) els.bridgeInterval.value = val;
 });
+
+// ---- X/Twitter Cookie 管理 ----
+async function loadCookieStatus() {
+  els.cookieStatus.textContent = '加载中...';
+  els.cookieStatus.className = 'cookie-status loading';
+  const status = await window.botAPI.bridgeSessionStatus();
+  renderCookieStatus(status);
+}
+
+function renderCookieStatus(s) {
+  const el = els.cookieStatus;
+  if (!s || (!s.has_session && !s.has_auth)) {
+    el.className = 'cookie-status expired';
+    el.innerHTML = '<span class="cookie-dot"></span> ❌ 未导入 Cookie — 请粘贴 Cookie JSON 后点导入';
+    return;
+  }
+  if (s.is_expired) {
+    el.className = 'cookie-status expired';
+    el.innerHTML = `<span class="cookie-dot"></span> ❌ Cookie 已失效！${s.expires_in_human || ''} — 请更新 Cookie`;
+    return;
+  }
+  if (s.expires_in_seconds !== null && s.expires_in_seconds !== undefined && s.expires_in_seconds < 259200) {
+    // <3 天
+    el.className = 'cookie-status warn';
+    el.innerHTML = `<span class="cookie-dot"></span> ⚠️ Cookie 即将过期 — ${s.expires_in_human}（${s.cookie_count || 0} 个 Cookie）`;
+    return;
+  }
+  el.className = 'cookie-status ok';
+  el.innerHTML = `<span class="cookie-dot"></span> ✅ Cookie 有效 — ${s.expires_in_human || '未知'}（${s.cookie_count || 0} 个 Cookie）`;
+}
+
+els.btnImportCookies.addEventListener('click', async () => {
+  const jsonStr = els.cookieInput.value.trim();
+  if (!jsonStr) {
+    flash(els.btnImportCookies, '请粘贴 Cookie ✗', true);
+    return;
+  }
+  els.btnImportCookies.disabled = true;
+  els.btnImportCookies.textContent = '导入中...';
+  const res = await window.botAPI.bridgeImportCookies(jsonStr);
+  els.btnImportCookies.disabled = false;
+  els.btnImportCookies.textContent = '📥 导入 Cookie';
+  if (res.ok) {
+    flash(els.btnImportCookies, `已导入 ${res.cookieCount} 个 Cookie ✓`, false);
+    els.cookieInput.value = '';
+    // 等待桥接重启后刷新状态
+    setTimeout(() => loadCookieStatus(), 3000);
+  } else {
+    flash(els.btnImportCookies, `导入失败: ${res.error} ✗`, true);
+  }
+});
+
+els.btnRestartBridge.addEventListener('click', async () => {
+  els.btnRestartBridge.disabled = true;
+  els.btnRestartBridge.textContent = '重启中...';
+  const res = await window.botAPI.bridgeRestart();
+  els.btnRestartBridge.disabled = false;
+  els.btnRestartBridge.textContent = '🔄 重启桥接';
+  flash(els.btnRestartBridge, res.ok ? '已重启 ✓' : '重启失败 ✗', !res.ok);
+  if (res.ok) setTimeout(() => loadCookieStatus(), 3000);
+});
+
+els.btnRefreshCookieStatus.addEventListener('click', () => loadCookieStatus());
+
 els.btnClear.addEventListener('click', async () => {
   await window.botAPI.clearLog();
   els.logBox.innerHTML = '';

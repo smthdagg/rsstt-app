@@ -172,6 +172,45 @@ body {
 .bridge-input:focus { outline: none; border-color: var(--accent); }
 .bridge-setting-row .hint { color: var(--text-dim); font-size: 11px; }
 
+/* ---- Cookie 管理区 ---- */
+.cookie-section {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.cookie-section h4 { margin: 0 0 8px 0; font-size: 13px; }
+.cookie-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 6px; font-size: 13px;
+  margin-bottom: 10px;
+}
+.cookie-status .cookie-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cookie-status.loading { background: rgba(128,128,128,0.1); color: var(--text-dim); }
+.cookie-status.loading .cookie-dot { background: var(--text-dim); }
+.cookie-status.ok { background: rgba(40,167,69,0.12); color: #4ade80; }
+.cookie-status.ok .cookie-dot { background: #4ade80; }
+.cookie-status.warn { background: rgba(255,193,7,0.12); color: #fbbf24; }
+.cookie-status.warn .cookie-dot { background: #fbbf24; }
+.cookie-status.expired {
+  background: rgba(220,53,69,0.15); color: #f87171;
+  animation: cookie-pulse 2s ease-in-out infinite;
+}
+.cookie-status.expired .cookie-dot { background: #f87171; }
+@keyframes cookie-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.cookie-import-row { display: flex; flex-direction: column; gap: 8px; }
+.cookie-import-row textarea {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; font-family: monospace;
+  resize: vertical; min-height: 60px;
+}
+.cookie-import-row textarea:focus { outline: none; border-color: var(--accent); }
+.cookie-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* ---- 用户管理 ---- */
 .users-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .users-toolbar input {

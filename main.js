@@ -494,6 +494,94 @@ ipcMain.handle('bridge:saveConfig', (_e, cfg) => {
   }
   return { ok };
 });
+
+// ── X/Twitter Cookie 管理 ──
+const SESSION_FILE = path.join(CONFIG_DIR, 'x_session.json');
+
+ipcMain.handle('bridge:sessionStatus', async () => {
+  try {
+    const http = require('http');
+    const body = await new Promise((resolve, reject) => {
+      const req = http.get(`http://127.0.0.1:${BRIDGE_PORT}/session`, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+      req.on('error', reject);
+      req.setTimeout(5000, () => { req.destroy(); reject('timeout'); });
+    });
+    return JSON.parse(body);
+  } catch (e) {
+    return { has_session: false, has_auth: false, is_expired: true,
+             expires_in_human: '桥接未运行', error: e.message };
+  }
+});
+
+ipcMain.handle('bridge:importCookies', async (_e, jsonStr) => {
+  try {
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      return { ok: false, error: 'JSON 格式无效' };
+    }
+
+    let cookies;
+    // 支持 EditThisCookie 格式 [{name, value, expirationDate, ...}]
+    // 和 Playwright storage_state 格式 {cookies: [...], origins: []}
+    if (Array.isArray(parsed)) {
+      cookies = parsed;
+    } else if (parsed.cookies && Array.isArray(parsed.cookies)) {
+      cookies = parsed.cookies;
+    } else {
+      return { ok: false, error: '无法识别的 Cookie 格式（需要数组或 {cookies: [...]} 格式）' };
+    }
+
+    // 转换为 Playwright storage_state 格式
+    const sameSiteMap = { 'unspecified': 'None', 'no_restriction': 'None',
+                          'lax': 'Lax', 'strict': 'Strict' };
+    const converted = cookies.map(c => ({
+      name: c.name || '',
+      value: c.value || '',
+      domain: c.domain || '.x.com',
+      path: c.path || '/',
+      expires: c.expires !== undefined ? c.expires : (c.expirationDate || -1),
+      httpOnly: c.httpOnly || false,
+      secure: c.secure !== undefined ? c.secure : true,
+      sameSite: sameSiteMap[c.sameSite] || c.sameSite || 'None',
+    }));
+
+    // 过滤掉不需要的 cookie
+    const filtered = converted.filter(c => !['g_state', '__cf_bm'].includes(c.name));
+
+    const sessionData = { cookies: filtered, origins: [] };
+    fs.mkdirSync(path.dirname(SESSION_FILE), { recursive: true });
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(sessionData, null, 2), 'utf8');
+    appendLog(`[BRIDGE] Cookie 已导入 (${filtered.length} 个)，正在重启桥接...`);
+
+    // 重启桥接
+    stopBridge();
+    await new Promise(r => setTimeout(r, 2000));
+    await startBridge();
+
+    return { ok: true, cookieCount: filtered.length };
+  } catch (e) {
+    appendLog(`[BRIDGE] Cookie 导入失败: ${e.message}`);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('bridge:restart', async () => {
+  try {
+    appendLog('[BRIDGE] 手动重启桥接...');
+    stopBridge();
+    await new Promise(r => setTimeout(r, 2000));
+    await startBridge();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
 ipcMain.handle('config:openInEditor', async () => {
   try {
     // 先确保文件存在

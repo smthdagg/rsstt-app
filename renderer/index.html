@@ -76,6 +76,20 @@
               <span class="hint">最小 60 秒，当前值：<span id="bridgeIntervalDisplay">600</span>s</span>
             </div>
             <button id="btnSaveBridgeConfig" class="btn btn-primary">💾 保存桥接设置</button>
+
+            <!-- Cookie 管理区 -->
+            <div class="cookie-section">
+              <h4>🔑 Cookie 状态</h4>
+              <div id="cookieStatus" class="cookie-status">加载中...</div>
+              <div class="cookie-import-row">
+                <textarea id="cookieInput" placeholder='粘贴 Cookie JSON（EditThisCookie 或 Playwright 格式）' rows="4"></textarea>
+                <div class="cookie-actions">
+                  <button id="btnImportCookies" class="btn btn-primary">📥 导入 Cookie</button>
+                  <button id="btnRestartBridge" class="btn">🔄 重启桥接</button>
+                  <button id="btnRefreshCookieStatus" class="btn">🔄 刷新状态</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
