@@ -174,14 +174,13 @@ body {
 
 /* ---- Cookie 管理区 ---- */
 .cookie-section {
-  margin-top: 14px; padding-top: 14px;
-  border-top: 1px dashed var(--border);
+  padding: 4px 0;
 }
-.cookie-section h4 { margin: 0 0 8px 0; font-size: 13px; }
+.cookie-section h3 { margin: 0 0 12px 0; font-size: 14px; }
 .cookie-status {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: 6px; font-size: 13px;
-  margin-bottom: 10px;
+  padding: 10px 14px; border-radius: 6px; font-size: 13px;
+  margin-bottom: 12px;
 }
 .cookie-status .cookie-dot {
   width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
@@ -206,10 +205,16 @@ body {
   background: var(--bg); color: var(--text);
   border: 1px solid var(--border); border-radius: 6px;
   padding: 8px 10px; font-size: 12px; font-family: monospace;
-  resize: vertical; min-height: 60px;
+  resize: vertical; min-height: 80px;
 }
 .cookie-import-row textarea:focus { outline: none; border-color: var(--accent); }
 .cookie-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cookie-help {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.cookie-help ol { margin: 4px 0 0 0; padding-left: 20px; }
+.cookie-help li { margin-bottom: 4px; }
 
 /* ---- 用户管理 ---- */
 .users-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

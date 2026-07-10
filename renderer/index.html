@@ -49,6 +49,7 @@
         <div class="config-modal-head">
           <div class="config-tabs">
             <button class="config-tab config-tab-active" data-config-tab="env">📄 .env 配置</button>
+            <button class="config-tab" data-config-tab="cookie">🔑 Cookie 管理</button>
             <button class="config-tab" data-config-tab="users">👥 用户管理</button>
           </div>
           <button id="btnCloseConfig" class="btn">✕ 关闭</button>
@@ -76,19 +77,29 @@
               <span class="hint">最小 60 秒，当前值：<span id="bridgeIntervalDisplay">600</span>s</span>
             </div>
             <button id="btnSaveBridgeConfig" class="btn btn-primary">💾 保存桥接设置</button>
+          </div>
+        </div>
 
-            <!-- Cookie 管理区 -->
-            <div class="cookie-section">
-              <h4>🔑 Cookie 状态</h4>
-              <div id="cookieStatus" class="cookie-status">加载中...</div>
-              <div class="cookie-import-row">
-                <textarea id="cookieInput" placeholder='粘贴 Cookie JSON（EditThisCookie 或 Playwright 格式）' rows="4"></textarea>
-                <div class="cookie-actions">
-                  <button id="btnImportCookies" class="btn btn-primary">📥 导入 Cookie</button>
-                  <button id="btnRestartBridge" class="btn">🔄 重启桥接</button>
-                  <button id="btnRefreshCookieStatus" class="btn">🔄 刷新状态</button>
-                </div>
+        <!-- Cookie 管理 -->
+        <div class="config-tab-content" id="config-tab-cookie">
+          <div class="cookie-section">
+            <h3>🔑 X/Twitter Cookie 管理</h3>
+            <div id="cookieStatus" class="cookie-status">加载中...</div>
+            <div class="cookie-import-row">
+              <textarea id="cookieInput" placeholder='粘贴 Cookie JSON（EditThisCookie 或 Playwright 格式）' rows="6"></textarea>
+              <div class="cookie-actions">
+                <button id="btnImportCookies" class="btn btn-primary">📥 导入 Cookie</button>
+                <button id="btnRestartBridge" class="btn">🔄 重启桥接</button>
+                <button id="btnRefreshCookieStatus" class="btn">🔄 刷新状态</button>
               </div>
+            </div>
+            <div class="cookie-help">
+              <p class="hint">📋 获取 Cookie 步骤：</p>
+              <ol class="hint">
+                <li>在 Chrome 浏览器登录 <a href="#" id="linkXLogin">x.com</a></li>
+                <li>安装 Cookie Editor 扩展，导出为 JSON</li>
+                <li>将 JSON 粘贴到上方文本框，点「导入 Cookie」</li>
+              </ol>
             </div>
           </div>
         </div>

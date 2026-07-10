@@ -99,6 +99,7 @@ document.querySelectorAll('.config-tab').forEach(t => {
     const tab = t.dataset.configTab;
     document.getElementById(`config-tab-${tab}`).classList.add('config-tab-content-active');
     if (tab === 'users') loadUsers();
+    if (tab === 'cookie') loadCookieStatus();
     if (tab === 'env') setTimeout(() => els.configArea.focus(), 100);
   });
 });
@@ -541,6 +542,7 @@ const extLinks = {
   linkUserInfo: 'https://t.me/userinfobot',
   linkGithub: 'https://github.com/Rongronggg9/RSS-to-Telegram-Bot',
   linkMyTelegram: 'https://my.telegram.org/apps',
+  linkXLogin: 'https://x.com',
 };
 Object.entries(extLinks).forEach(([id, url]) => {
   const el = $(id);
