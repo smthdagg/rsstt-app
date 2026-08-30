@@ -160,3 +160,27 @@ RSS 源 / 网页 → Playwright 桥接 → 内存 RSS 缓存 → RSStT Bot → T
 ## 📄 许可
 
 [AGPL-3.0](LICENSE) — 基于 [RSStT](https://github.com/Rongronggg9/RSS-to-Telegram-Bot) 修改。
+
+---
+
+## OpenWrt 私有源安装 / Install from the private OpenWrt feed
+
+本项目已在私有 OpenWrt 软件源中预留目录（目录名与仓库同名）：
+`https://smthdagg.github.io/Smthdagg-Repo-feeds/rsstt-app/`
+
+包发布后，在 OpenWrt 路由器上执行 / Once packages are published, run on the router:
+
+```sh
+# 1) 导入签名公钥（一次即可，长期不变） / import the signing key (once, long-lived)
+wget -O /etc/opkg/keys/f7050198aa77cf15 \
+  https://raw.githubusercontent.com/smthdagg/Smthdagg-Repo-feeds/main/wloc.pub
+# 2) 添加本项目源 / add this project's feed
+echo "src/gz rsstt-app https://smthdagg.github.io/Smthdagg-Repo-feeds/rsstt-app" \
+  >> /etc/opkg/customfeeds.conf
+# 3) 安装 / install
+opkg update && opkg install rsstt-app
+```
+
+> 状态：目录已预留，尚未发布 OpenWrt 包；发布后本节会更新为具体版本号。
+>
+> Status: directory reserved, no packages published yet; this section will be updated with concrete versions once packages ship.
