@@ -293,6 +293,8 @@ function isConfigured() {
 }
 
 async function startBot() {
+  if (botState === 'starting' || botState === 'running') return;
+  setState('starting');
   // 先启动 X/Twitter RSS 桥接服务
   await startBridge();
 
@@ -311,7 +313,6 @@ async function startBot() {
     const journal = path.join(CONFIG_DIR, 'bot.session-journal');
     if (fs.existsSync(journal)) fs.unlinkSync(journal);
   } catch {}
-  setState('idle');
   // 等 500ms 确保资源释放
   await new Promise(r => setTimeout(r, 500));
   if (!fs.existsSync(VENV_PYTHON)) {
@@ -331,7 +332,6 @@ async function startBot() {
     return;
   }
 
-  setState('starting');
   appendLog(`[INFO] 启动 Bot 子进程...`);
   appendLog(`[INFO] Python: ${VENV_PYTHON}`);
   appendLog(`[INFO] 入口:   ${ENTRY}`);
