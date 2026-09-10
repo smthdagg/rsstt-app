@@ -201,9 +201,17 @@ function renderRouteConfigList() {
     routeConfig.rules = (routeConfig.rules || []).filter(r => r.pattern !== pattern);
     if (select.value !== routeConfig.defaultBot) routeConfig.rules.push({ pattern, bot: select.value });
     await window.botAPI.routesSave(routeConfig);
+    renderRouteConfigList();
     renderSubs(allSubs);
   }));
 }
+
+els.defaultRoute.addEventListener('change', async () => {
+  routeConfig.defaultBot = els.defaultRoute.value === 'secondary' ? 'secondary' : 'primary';
+  await window.botAPI.routesSave(routeConfig);
+  renderRouteConfigList();
+  renderSubs(allSubs);
+});
 
 async function loadSubs() {
   const savedScroll = els.subsContainer.scrollTop;
@@ -301,6 +309,7 @@ function renderSubs(subs) {
         if (routeSelect.value !== routeConfig.defaultBot) routeConfig.rules.push({ pattern, bot: routeSelect.value });
         const saved = await window.botAPI.routesSave(routeConfig);
         flash(routeSelect, saved.ok ? '✓' : '✗', !saved.ok);
+        renderRouteConfigList();
       });
       list.appendChild(item);
     }
