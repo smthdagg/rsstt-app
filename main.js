@@ -189,6 +189,10 @@ async function startBridge() {
 
   try {
     const bridgeCfg = readBridgeConfig();
+    const configuredUsers = Array.isArray(bridgeCfg.users)
+      ? bridgeCfg.users.filter(Boolean).length
+      : 1;
+    const expectedUsers = Math.max(1, configuredUsers);
     const envVars = { ...process.env, PYTHONUNBUFFERED: '1' };
     envVars.XBRIDGE_INTERVAL = String(bridgeCfg.interval || 600);
     
@@ -235,11 +239,11 @@ async function startBridge() {
         req.setTimeout(3000, () => { req.destroy(); reject('timeout'); });
       });
       const info = JSON.parse(body);
-      if (info.users_cached >= 3) {
+      if (info.users_cached >= expectedUsers) {
         appendLog(`[BRIDGE] ✓ X/Twitter RSS 桥已就绪 (${info.users_cached} 个用户已缓存)`);
         return true;
       }
-      if (i % 10 === 0) appendLog(`[BRIDGE] 等待缓存... (${info.users_cached}/${41} 用户)`);
+      if (i % 10 === 0) appendLog(`[BRIDGE] 等待缓存... (${info.users_cached}/${expectedUsers} 用户)`);
     } catch {
       if (i % 5 === 0) appendLog(`[BRIDGE] 等待服务就绪... (${i + 1}s)`);
     }
