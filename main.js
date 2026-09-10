@@ -6,6 +6,7 @@ const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell } = 
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const APP_VERSION = app.getVersion();
 
 // ----- 路径常量 -----
 // 开发模式：RSStT 源码在上级目录的 ../RSStT（即 ZCodeProject/RSStT）
@@ -193,7 +194,7 @@ async function startBridge() {
       ? bridgeCfg.users.filter(Boolean).length
       : 1;
     const expectedUsers = Math.max(1, configuredUsers);
-    const envVars = { ...process.env, PYTHONUNBUFFERED: '1' };
+    const envVars = { ...process.env, PYTHONUNBUFFERED: '1', RSSTT_APP_VERSION: APP_VERSION };
     envVars.XBRIDGE_INTERVAL = String(bridgeCfg.interval || 600);
     
     bridgeProcess = spawn(VENV_PYTHON, ['-u', BRIDGE_SCRIPT], {
@@ -345,7 +346,7 @@ async function startBot() {
   try {
     botProcess = spawn(VENV_PYTHON, ['-u', ENTRY, '-c', CONFIG_DIR], {
       cwd: RSSTT_ROOT,
-      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      env: { ...process.env, PYTHONUNBUFFERED: '1', RSSTT_APP_VERSION: APP_VERSION },
     });
   } catch (e) {
     appendLog(`[ERROR] 启动失败：${e.message}`);
@@ -510,6 +511,7 @@ ipcMain.handle('bot:start', () => { startBot(); });
 ipcMain.handle('bot:stop', () => { stopBot(); });
 ipcMain.handle('bot:getState', () => botState);
 ipcMain.handle('app:getStatus', () => ({
+  version: APP_VERSION,
   state: botState,
   configured: isConfigured(),
   rssttRoot: RSSTT_ROOT,

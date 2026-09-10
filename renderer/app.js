@@ -154,7 +154,7 @@ async function refreshConfigured() {
 function updateEnvInfo(st) {
   const py = st.venvReady ? '✓ 已就绪' : '✗ 未安装';
   const cfg = st.configured ? '✓ 已配置' : '✗ 待填写凭证';
-  els.envInfo.textContent = `Python venv: ${py}  ·  配置: ${cfg}`;
+  els.envInfo.textContent = `360News v${st.version || 'dev'}  ·  Python venv: ${py}  ·  配置: ${cfg}`;
 }
 
 // ---- 标签导航 ----
