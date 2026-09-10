@@ -11,6 +11,9 @@ const els = {
   envWarn: $('envWarn'),
   configPanel: $('configPanel'), envPath: $('envPath'),
   configArea: $('configArea'), btnSaveConfig: $('btnSaveConfig'), btnCloseConfig: $('btnCloseConfig'),
+  primaryToken: $('primaryToken'), primaryManager: $('primaryManager'), primaryApiId: $('primaryApiId'), primaryApiHash: $('primaryApiHash'), primaryProxy: $('primaryProxy'),
+  secondaryToken: $('secondaryToken'), secondaryManager: $('secondaryManager'), defaultRoute: $('defaultRoute'), routeConfigList: $('routeConfigList'),
+  btnSaveStructured: $('btnSaveStructured'),
   logBox: $('logBox'), autoscroll: $('autoscroll'),
   envInfo: $('envInfo'),
   // Subs
@@ -81,10 +84,23 @@ function openConfig() {
     els.bridgeInterval.value = val;
     els.bridgeIntervalDisplay.textContent = val;
   });
+  window.botAPI.structuredConfigRead().then(res => {
+    if (!res.ok) return;
+    const p = res.primary || {}, s = res.secondary || {};
+    els.primaryToken.value = p.token || ''; els.primaryManager.value = p.manager || '';
+    els.primaryApiId.value = p.apiId || ''; els.primaryApiHash.value = p.apiHash || ''; els.primaryProxy.value = p.proxy || '';
+    els.secondaryToken.value = s.token || ''; els.secondaryManager.value = s.manager || '';
+    routeConfig = res.routes || routeConfig;
+    els.defaultRoute.value = routeConfig.defaultBot || 'primary';
+    renderRouteConfigList();
+  });
   // 加载 Cookie 状态
   loadCookieStatus();
   // 加载用户列表
   loadUsers();
+  window.botAPI.subsList().then(res => {
+    if (res.ok) { allSubs = res.data || []; renderRouteConfigList(); }
+  });
 }
 function closeConfig() { els.configPanel.removeAttribute('open'); }
 // 点击背景关闭
@@ -100,7 +116,8 @@ document.querySelectorAll('.config-tab').forEach(t => {
     document.getElementById(`config-tab-${tab}`).classList.add('config-tab-content-active');
     if (tab === 'users') loadUsers();
     if (tab === 'cookie') loadCookieStatus();
-    if (tab === 'env') setTimeout(() => els.configArea.focus(), 100);
+    if (tab === 'routing') renderRouteConfigList();
+    if (tab === 'advanced') setTimeout(() => els.configArea.focus(), 100);
   });
 });
 
@@ -108,6 +125,17 @@ async function saveConfig() {
   const res = await window.botAPI.saveConfig(els.configArea.value);
   flash(els.btnSaveConfig, res.ok ? '已保存 ✓' : '保存失败 ✗', !res.ok);
   refreshConfigured();
+}
+
+async function saveStructuredConfig() {
+  const res = await window.botAPI.structuredConfigSave({
+    primary: { token: els.primaryToken.value, manager: els.primaryManager.value, apiId: els.primaryApiId.value, apiHash: els.primaryApiHash.value, proxy: els.primaryProxy.value },
+    secondary: { token: els.secondaryToken.value, manager: els.secondaryManager.value },
+    bridge: { interval: Math.max(60, parseInt(els.bridgeInterval.value) || 600) },
+    routes: { defaultBot: els.defaultRoute.value, rules: routeConfig.rules || [] },
+  });
+  flash(els.btnSaveConfig, res.ok ? '已保存 ✓' : '保存失败 ✗', !res.ok);
+  if (res.ok) refreshConfigured();
 }
 
 function flash(btn, text, isError) {
@@ -142,6 +170,40 @@ els.tabBar.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.ta
 
 // ---- 订阅管理 ----
 let allSubs = [];
+let routeConfig = { defaultBot: 'primary', rules: [] };
+
+function routePattern(link) {
+  const m = String(link || '').match(/\/twitter\/user\/([A-Za-z0-9_]{1,15})/i);
+  return m ? m[1].toLowerCase() : String(link || '').toLowerCase();
+}
+function routeFor(link) {
+  const pattern = routePattern(link);
+  return (routeConfig.rules || []).find(r => r.pattern === pattern)?.bot || routeConfig.defaultBot || 'primary';
+}
+
+function renderRouteConfigList() {
+  if (!els.routeConfigList) return;
+  if (!allSubs.length) {
+    els.routeConfigList.innerHTML = '<div class="hint">暂无订阅来源，请先在“订阅管理”添加。</div>';
+    return;
+  }
+  const unique = new Map(allSubs.map(s => [s.link, s]));
+  els.routeConfigList.innerHTML = [...unique.values()].map(s => `
+    <div class="route-config-row">
+      <span title="${esc(s.link)}">${esc(s.sub_title || s.feed_title || shortUrl(s.link))}</span>
+      <select data-route-pattern="${esc(routePattern(s.link))}">
+        <option value="primary" ${routeFor(s.link) === 'primary' ? 'selected' : ''}>BOT 1</option>
+        <option value="secondary" ${routeFor(s.link) === 'secondary' ? 'selected' : ''}>BOT 2</option>
+      </select>
+    </div>`).join('');
+  els.routeConfigList.querySelectorAll('select').forEach(select => select.addEventListener('change', async () => {
+    const pattern = select.dataset.routePattern;
+    routeConfig.rules = (routeConfig.rules || []).filter(r => r.pattern !== pattern);
+    if (select.value !== routeConfig.defaultBot) routeConfig.rules.push({ pattern, bot: select.value });
+    await window.botAPI.routesSave(routeConfig);
+    renderSubs(allSubs);
+  }));
+}
 
 async function loadSubs() {
   const savedScroll = els.subsContainer.scrollTop;
@@ -152,6 +214,9 @@ async function loadSubs() {
     return;
   }
   allSubs = res.data;
+  const routes = await window.botAPI.routesRead();
+  if (routes.ok) routeConfig = routes.data || routeConfig;
+  renderRouteConfigList();
   els.subCount.hidden = false;
   els.subCount.textContent = allSubs.length;
   renderSubs(allSubs);
@@ -203,6 +268,10 @@ function renderSubs(subs) {
       item.innerHTML = `
         <span class="sub-item-title" title="${esc(displayTitle)}">${typeBadge} ${esc(displayTitle)}</span>
         <span class="sub-item-url" title="${esc(s.link)}">${esc(shortUrl(s.link))}</span>
+        <select class="route-select" data-action="route" data-pattern="${esc(routePattern(s.link))}" title="推送到哪个 Bot">
+          <option value="primary" ${routeFor(s.link) === 'primary' ? 'selected' : ''}>BOT 1</option>
+          <option value="secondary" ${routeFor(s.link) === 'secondary' ? 'selected' : ''}>BOT 2</option>
+        </select>
         <span class="sub-item-actions">
           <button class="btn-sm ${isActive ? 'on' : 'off'}" data-action="toggle" data-id="${s.id}">
             ${isActive ? '● 开启' : '○ 关闭'}
@@ -224,6 +293,14 @@ function renderSubs(subs) {
             }
           }
         });
+      });
+      const routeSelect = item.querySelector('[data-action="route"]');
+      routeSelect.addEventListener('change', async () => {
+        const pattern = routeSelect.dataset.pattern;
+        routeConfig.rules = (routeConfig.rules || []).filter(r => r.pattern !== pattern);
+        if (routeSelect.value !== routeConfig.defaultBot) routeConfig.rules.push({ pattern, bot: routeSelect.value });
+        const saved = await window.botAPI.routesSave(routeConfig);
+        flash(routeSelect, saved.ok ? '✓' : '✗', !saved.ok);
       });
       list.appendChild(item);
     }
@@ -308,6 +385,7 @@ els.btnStop.addEventListener('click', () => window.botAPI.stop());
 els.btnEdit.addEventListener('click', openConfig);
 els.btnEditor.addEventListener('click', () => window.botAPI.openConfigInEditor());
 els.btnCloseConfig.addEventListener('click', closeConfig);
+els.btnSaveStructured.addEventListener('click', saveStructuredConfig);
 
 // ---- X/Twitter 桥接配置 ----
 els.bridgeInterval.addEventListener('input', () => {

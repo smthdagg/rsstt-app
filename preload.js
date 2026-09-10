@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('botAPI', {
   getStatus: () => ipcRenderer.invoke('app:getStatus'),
   readConfig: () => ipcRenderer.invoke('config:read'),
   saveConfig: (content) => ipcRenderer.invoke('config:save', content),
+  structuredConfigRead: () => ipcRenderer.invoke('config:structuredRead'),
+  structuredConfigSave: (config) => ipcRenderer.invoke('config:structuredSave', config),
   openConfigInEditor: () => ipcRenderer.invoke('config:openInEditor'),
   clearLog: () => ipcRenderer.invoke('log:clear'),
   getAllLog: () => ipcRenderer.invoke('log:getAll'),
@@ -57,4 +59,6 @@ contextBridge.exposeInMainWorld('botAPI', {
   bridgeSessionStatus: () => ipcRenderer.invoke('bridge:sessionStatus'),
   bridgeImportCookies: (jsonStr) => ipcRenderer.invoke('bridge:importCookies', jsonStr),
   bridgeRestart: () => ipcRenderer.invoke('bridge:restart'),
+  routesRead: () => ipcRenderer.invoke('routes:read'),
+  routesSave: (config) => ipcRenderer.invoke('routes:save', config),
 });

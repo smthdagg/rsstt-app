@@ -55,6 +55,7 @@ function dbQuery(...args) {
 const BRIDGE_SCRIPT = path.join(RSSTT_ROOT, 'src', 'twitter_rss_bridge.py');
 const BRIDGE_PORT = 1200;
 const BRIDGE_CONFIG = path.join(CONFIG_DIR, 'xbridge_config.json');
+const ROUTES_FILE = path.join(CONFIG_DIR, 'push_routes.json');
 
 // 读取 X/Twitter 桥接配置
 function readBridgeConfig() {
@@ -73,6 +74,51 @@ function saveBridgeConfig(config) {
     fs.writeFileSync(BRIDGE_CONFIG, JSON.stringify(config, null, 2), 'utf8');
     return true;
   } catch (e) { console.error('saveBridgeConfig error:', e.message); return false; }
+}
+
+function readPushRoutes() {
+  try {
+    if (fs.existsSync(ROUTES_FILE)) return JSON.parse(fs.readFileSync(ROUTES_FILE, 'utf8'));
+  } catch (e) { console.error('readPushRoutes error:', e.message); }
+  return { defaultBot: 'primary', rules: [] };
+}
+
+function savePushRoutes(config) {
+  try {
+    const rules = Array.isArray(config?.rules) ? config.rules
+      .filter(r => r && r.pattern && ['primary', 'secondary'].includes(r.bot))
+      .map(r => ({ pattern: String(r.pattern).trim().toLowerCase(), bot: r.bot })) : [];
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.writeFileSync(ROUTES_FILE, JSON.stringify({ defaultBot: config?.defaultBot === 'secondary' ? 'secondary' : 'primary', rules }, null, 2), 'utf8');
+    return true;
+  } catch (e) { console.error('savePushRoutes error:', e.message); return false; }
+}
+
+function parseEnv(content) {
+  const result = {};
+  for (const line of String(content || '').split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (match) result[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+  }
+  return result;
+}
+
+function updateEnvValues(values) {
+  const original = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : defaultEnv();
+  const lines = original.split(/\r?\n/);
+  const seen = new Set();
+  const output = lines.map(line => {
+    const match = line.match(/^(\s*)([A-Z0-9_]+)(\s*=\s*).*$/);
+    if (!match || !(match[2] in values)) return line;
+    if (values[match[2]] === null) return null;
+    if (values[match[2]] === '') return line;
+    seen.add(match[2]);
+    return `${match[1]}${match[2]}=${values[match[2]]}`;
+  }).filter(Boolean);
+  for (const [key, value] of Object.entries(values)) {
+    if (value && !seen.has(key)) output.push(`${key}=${value}`);
+  }
+  fs.writeFileSync(ENV_FILE, output.join('\n'), 'utf8');
 }
 
 // ----- 全局状态 -----
@@ -483,6 +529,41 @@ ipcMain.handle('config:save', (_e, content) => {
     return { ok: false, error: e.message };
   }
 });
+ipcMain.handle('config:structuredRead', () => {
+  const env = parseEnv(fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : '');
+  const mask = (value) => value ? `${value.slice(0, 4)}••••${value.slice(-4)}` : '';
+  const routes = readPushRoutes();
+  if (!routes.rules.length && env.ROUTED_BOT_FEEDS) {
+    routes.rules = env.ROUTED_BOT_FEEDS.split(/[\s,;，；]+/).filter(Boolean).map(pattern => ({ pattern: pattern.toLowerCase(), bot: 'secondary' }));
+  }
+  return {
+    ok: true,
+    primary: { token: mask(env.TOKEN), manager: env.MANAGER || '', apiId: env.API_ID || '', apiHash: mask(env.API_HASH), proxy: env.TELEGRAM_PROXY || '' },
+    secondary: { token: mask(env.ROUTED_BOT_TOKEN), manager: env.ROUTED_MANAGER || '' },
+    bridge: readBridgeConfig(),
+    routes,
+  };
+});
+ipcMain.handle('config:structuredSave', (_e, payload = {}) => {
+  try {
+    const values = {};
+    const put = (key, value) => { if (String(value || '').trim() && !String(value).includes('••••')) values[key] = String(value).trim(); };
+    put('TOKEN', payload.primary?.token); put('MANAGER', payload.primary?.manager);
+    put('API_ID', payload.primary?.apiId); put('API_HASH', payload.primary?.apiHash); put('TELEGRAM_PROXY', payload.primary?.proxy);
+    put('ROUTED_BOT_TOKEN', payload.secondary?.token); put('ROUTED_MANAGER', payload.secondary?.manager);
+    // Source routing is now authoritative; remove the legacy username list
+    // after the first structured save.
+    values.ROUTED_BOT_FEEDS = null;
+    updateEnvValues(values);
+    saveBridgeConfig({ ...readBridgeConfig(), ...(payload.bridge || {}) });
+    savePushRoutes(payload.routes || {});
+    const configured = isConfigured();
+    if (mainWindow) mainWindow.webContents.send('app:configured', configured);
+    return { ok: true, configured, restartRequired: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+ipcMain.handle('routes:read', () => ({ ok: true, data: readPushRoutes() }));
+ipcMain.handle('routes:save', (_e, config) => ({ ok: savePushRoutes(config) }));
 ipcMain.handle('bridge:readConfig', () => {
   return readBridgeConfig();
 });
@@ -519,23 +600,30 @@ ipcMain.handle('bridge:sessionStatus', async () => {
 
 ipcMain.handle('bridge:importCookies', async (_e, jsonStr) => {
   try {
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      return { ok: false, error: 'JSON 格式无效' };
-    }
-
+    const rawText = String(jsonStr || '').trim();
     let cookies;
-    // 支持 EditThisCookie 格式 [{name, value, expirationDate, ...}]
-    // 和 Playwright storage_state 格式 {cookies: [...], origins: []}
-    if (Array.isArray(parsed)) {
-      cookies = parsed;
-    } else if (parsed.cookies && Array.isArray(parsed.cookies)) {
-      cookies = parsed.cookies;
-    } else {
-      return { ok: false, error: '无法识别的 Cookie 格式（需要数组或 {cookies: [...]} 格式）' };
+    try {
+      const parsed = JSON.parse(rawText);
+      cookies = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.cookies) ? parsed.cookies : null);
+    } catch { /* try browser text formats below */ }
+    // Netscape seven-column export, including #HttpOnly_ lines.
+    if (!cookies && rawText.includes('\t')) {
+      cookies = rawText.split(/\r?\n/).filter(line => line && !(/^#/.test(line) && !line.startsWith('#HttpOnly_'))).map(line => {
+        const httpOnly = line.startsWith('#HttpOnly_');
+        const fields = line.replace(/^#HttpOnly_/, '').split('\t');
+        if (fields.length < 7) return null;
+        const [domain, , pathName, secure, expires, name, ...value] = fields;
+        return { domain, path: pathName || '/', secure: secure.toUpperCase() === 'TRUE', expires: Number(expires) || -1, name, value: value.join('\t'), httpOnly };
+      }).filter(Boolean);
     }
+    // Cookie header copied from DevTools: name=value; name2=value2
+    if (!cookies && rawText.includes('=')) {
+      cookies = rawText.split(';').map(part => {
+        const i = part.indexOf('=');
+        return i > 0 ? { name: part.slice(0, i).trim(), value: part.slice(i + 1).trim(), domain: '.x.com', path: '/', secure: true } : null;
+      }).filter(Boolean);
+    }
+    if (!cookies?.length) return { ok: false, error: '无法识别 Cookie。支持 JSON、Playwright、Netscape 导出和 name=value; 格式' };
 
     // 转换为 Playwright storage_state 格式
     const sameSiteMap = { 'unspecified': 'None', 'no_restriction': 'None',

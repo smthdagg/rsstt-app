@@ -48,27 +48,59 @@
       <div class="config-modal">
         <div class="config-modal-head">
           <div class="config-tabs">
-            <button class="config-tab config-tab-active" data-config-tab="env">📄 .env 配置</button>
-            <button class="config-tab" data-config-tab="cookie">🔑 Cookie 管理</button>
-            <button class="config-tab" data-config-tab="users">👥 用户管理</button>
+            <button class="config-tab config-tab-active" data-config-tab="primary">🤖 BOT 1</button>
+            <button class="config-tab" data-config-tab="secondary">🤖 BOT 2</button>
+            <button class="config-tab" data-config-tab="routing">🔀 来源路由</button>
+            <button class="config-tab" data-config-tab="cookie">🍪 X / Cookie</button>
+            <button class="config-tab" data-config-tab="users">👥 用户</button>
+            <button class="config-tab" data-config-tab="advanced">⚙ 高级</button>
           </div>
           <button id="btnCloseConfig" class="btn">✕ 关闭</button>
         </div>
 
-        <!-- .env 编辑 -->
-        <div class="config-tab-content config-tab-content-active" id="config-tab-env">
-          <p class="hint">
-            TOKEN 从 <a href="#" id="linkBotFather">@BotFather</a> 获取；
-            MANAGER 从 <a href="#" id="linkUserInfo">@userinfobot</a> 获取；
-            API_ID/HASH 从 <a href="#" id="linkMyTelegram">my.telegram.org</a> 获取。
-          </p>
-          <textarea id="configArea" spellcheck="false" wrap="off"></textarea>
-          <div class="config-actions">
-            <button id="btnSaveConfig" class="btn btn-primary">💾 保存 .env</button>
-            <button id="btnEditor" class="btn">📝 外部编辑器打开</button>
-          </div>
+        <div class="config-tab-content config-tab-content-active" id="config-tab-primary">
+          <h3>BOT 1 · 主推送</h3><p class="hint">原有 RSS 和未指定路由的来源发送到这里。</p>
+          <label>Bot Token<input id="primaryToken" type="password" placeholder="从 @BotFather 获取（留空表示不修改）"></label>
+          <label>管理员 ID<input id="primaryManager" placeholder="Telegram 数字 ID，多个用逗号分隔"></label>
+          <label>API ID<input id="primaryApiId" inputmode="numeric"></label>
+          <label>API Hash<input id="primaryApiHash" type="password" placeholder="留空表示不修改"></label>
+          <label>Telegram 代理（可选）<input id="primaryProxy" placeholder="socks5://…"></label>
+          <button id="btnSaveStructured" class="btn btn-primary">💾 保存配置</button>
+          <p class="hint">保存后重启 Bot 才会应用凭证变化。</p>
+        </div>
 
-          <!-- X/Twitter 桥接设置 -->
+        <div class="config-tab-content" id="config-tab-secondary">
+          <h3>BOT 2 · 指定来源</h3><p class="hint">BOT 2 不再单独维护 X 用户名；哪些来源发送到 BOT 2，完全由“订阅管理”的来源路由决定。</p>
+          <label>Bot Token<input id="secondaryToken" type="password" placeholder="从 @BotFather 获取（留空表示不修改）"></label>
+          <label>BOT 2 管理员 ID<input id="secondaryManager" placeholder="Telegram 数字 ID，多个用逗号分隔"></label>
+          <p class="hint">Bot ID 会由 Token 自动识别；管理员只负责 BOT 2 的群组和管理权限。</p>
+        </div>
+
+        <div class="config-tab-content" id="config-tab-routing">
+          <h3>来源 → 推送 Bot</h3>
+          <p class="hint">在“订阅管理”每一行直接选择 BOT 1 或 BOT 2；这里显示默认策略。</p>
+          <label>未指定来源默认发送到
+            <select id="defaultRoute"><option value="primary">BOT 1</option><option value="secondary">BOT 2</option></select>
+          </label>
+          <div id="routeConfigList" class="route-config-list"><div class="hint">正在加载来源…</div></div>
+          <p class="hint">来源路由会保存到 config/push_routes.json，重启 Bot 后生效。</p>
+        </div>
+
+        <!-- X/Twitter + Cookie -->
+        <div class="config-tab-content" id="config-tab-cookie">
+          <div class="cookie-section">
+            <h3>🍪 X/Twitter Cookie</h3>
+            <div id="cookieStatus" class="cookie-status">加载中...</div>
+            <div class="cookie-import-row">
+              <textarea id="cookieInput" placeholder="粘贴任意常见 Cookie 导出：JSON、Playwright、Netscape 或 name=value; 格式" rows="6"></textarea>
+              <div class="cookie-actions">
+                <button id="btnImportCookies" class="btn btn-primary">📥 导入 Cookie</button>
+                <button id="btnRestartBridge" class="btn">🔄 重启桥接</button>
+                <button id="btnRefreshCookieStatus" class="btn">🔄 刷新状态</button>
+              </div>
+            </div>
+            <div class="cookie-help"><p class="hint">支持从 Cookie Editor 导出的 JSON 或 Playwright storage_state；Cookie 内容只保存在本机 config/x_session.json。</p></div>
+          </div>
           <div class="bridge-settings">
             <h3>🐦 X/Twitter 桥接设置</h3>
             <div class="bridge-setting-row">
@@ -80,28 +112,11 @@
           </div>
         </div>
 
-        <!-- Cookie 管理 -->
-        <div class="config-tab-content" id="config-tab-cookie">
-          <div class="cookie-section">
-            <h3>🔑 X/Twitter Cookie 管理</h3>
-            <div id="cookieStatus" class="cookie-status">加载中...</div>
-            <div class="cookie-import-row">
-              <textarea id="cookieInput" placeholder='粘贴 Cookie JSON（EditThisCookie 或 Playwright 格式）' rows="6"></textarea>
-              <div class="cookie-actions">
-                <button id="btnImportCookies" class="btn btn-primary">📥 导入 Cookie</button>
-                <button id="btnRestartBridge" class="btn">🔄 重启桥接</button>
-                <button id="btnRefreshCookieStatus" class="btn">🔄 刷新状态</button>
-              </div>
-            </div>
-            <div class="cookie-help">
-              <p class="hint">📋 获取 Cookie 步骤：</p>
-              <ol class="hint">
-                <li>在 Chrome 浏览器登录 <a href="#" id="linkXLogin">x.com</a></li>
-                <li>安装 Cookie Editor 扩展，导出为 JSON</li>
-                <li>将 JSON 粘贴到上方文本框，点「导入 Cookie」</li>
-              </ol>
-            </div>
-          </div>
+        <!-- 高级原始配置 -->
+        <div class="config-tab-content" id="config-tab-advanced">
+          <p class="hint">仅在需要排查问题时编辑原始 .env；常用配置请使用 BOT 1 / BOT 2 标签页。</p>
+          <textarea id="configArea" spellcheck="false" wrap="off"></textarea>
+          <div class="config-actions"><button id="btnSaveConfig" class="btn btn-primary">💾 保存 .env</button><button id="btnEditor" class="btn">📝 外部编辑器</button></div>
         </div>
 
         <!-- 用户管理 -->
